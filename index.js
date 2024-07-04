@@ -1,7 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const port = process.env.PORT || 5000
 const app = express()
@@ -28,11 +28,11 @@ async function run() {
     try {
         const db = client.db('mhmitas_portfolio')
         const userColl = db.collection('user')
+        const projectColl = db.collection('projects')
 
-        // sign in owner
+        // sign in of admin
         app.post('/api/sign-in', async (req, res) => {
             const data = await req.body
-            console.log(data)
             const user = await db.collection('admins').findOne({ email: data?.email })
             if (!user || user.role !== 'admin' || user?.password !== data?.password) {
                 return res.status(400).send('unauthorize access')
@@ -43,9 +43,7 @@ async function run() {
         // verify admin
         app.get('/api/is-admin/:email', async (req, res) => {
             const email = req.params.email
-            console.log(email)
             const user = await db.collection('admins').findOne({ email: email })
-            console.log(user)
             if (user && user.role === 'admin') {
                 return res.send({ isAdmin: true, user })
             }
@@ -74,6 +72,42 @@ async function run() {
             return res.send(result)
         })
 
+
+        // project related apis
+        // get all projects
+        app.get('/api/projects', async (req, res) => {
+            let limit = 0
+            if (req.query?.limit) {
+                limit = parseInt(req.query.limit)
+            }
+            const options = { sort: { priority: 1 } }
+            const projects = await projectColl.find({}, options).limit(limit).toArray()
+            res.send(projects)
+        })
+        // get project details
+        app.get('/api/projects/details/:id', async (req, res) => {
+            const id = req.params;
+            const objectId = ObjectId.isValid(id)
+            if (!objectId) {
+                return res.status(400).send({})
+            }
+            const query = { _id: new ObjectId(id) }
+            const project = await projectColl.findOne(query)
+            res.send(project)
+        })
+        // const update an project
+        app.put('/api/projects/update/:id', async (req, res) => {
+            const id = req.params;
+            const updateProject = await req.body
+            const objectId = ObjectId.isValid(id)
+            if (!objectId) {
+                return res.status(400).send({})
+            }
+            const query = { _id: new ObjectId(id) }
+            const updateDoc = { $set: updateProject }
+            const project = await projectColl.updateOne(query, updateDoc)
+            res.send(project)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
