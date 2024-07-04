@@ -29,6 +29,29 @@ async function run() {
         const db = client.db('mhmitas_portfolio')
         const userColl = db.collection('user')
 
+        // sign in owner
+        app.post('/api/sign-in', async (req, res) => {
+            const data = await req.body
+            console.log(data)
+            const user = await db.collection('admins').findOne({ email: data?.email })
+            if (!user || user.role !== 'admin' || user?.password !== data?.password) {
+                return res.status(400).send('unauthorize access')
+            }
+            delete user.password
+            res.status(200).send({ user, message: 'ok' })
+        })
+        // verify admin
+        app.get('/api/is-admin/:email', async (req, res) => {
+            const email = req.params.email
+            console.log(email)
+            const user = await db.collection('admins').findOne({ email: email })
+            console.log(user)
+            if (user && user.role === 'admin') {
+                return res.send({ isAdmin: true, user })
+            }
+            return res.send({ isAdmin: false })
+        })
+
         // save user in db
         app.post('/api/user', async (req, res) => {
             const userData = await req.body;
