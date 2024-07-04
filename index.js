@@ -7,7 +7,9 @@ const port = process.env.PORT || 5000
 const app = express()
 
 // middlewares
-app.use(cors())
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://mhmitas.vercel.app']
+}))
 app.use(express.json())
 
 const uri = process.env.MONGODB_URI
